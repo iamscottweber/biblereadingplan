@@ -7,33 +7,63 @@ import calendar
 from random import randrange
 import requests
 import sys
+from datetime import datetime, timedelta
 
-my_date = datetime.datetime.today()
-today_human_readable = my_date.strftime('%Y-%m-%d')
-day_of_week_human_readable = calendar.day_name[my_date.weekday()]  #'Wednesday'
 
 
 def parse_bible_data(current_week,current_day):
     for week in bible_plan:
         if week['Week'] == str(current_week):
-            ordered_week = OrderedDict(week)
-            this_weeks_readings = ordered_week
-            for i, (key, value) in enumerate(ordered_week.items()):
+            this_weeks_readings = OrderedDict(week)
+            for i, (key, value) in enumerate(this_weeks_readings.items()):
                 if i == current_day + 1:
-                    print(f"Todays reading is {value}")
+                    reference = value
+                    print(f"Todays reading is {reference}")
                     if not value[-1].isdigit():
                         first_chapter = '1'
                     else: 
-                        first_chapter = value.split(" ")[-1].split("-")[0]
-                    if value.split(" ")[0].isdigit():
-                        book = ' '.join(value.split(" "))
-                    else: book = value.split(" ")[0]
+                        first_chapter = reference.split(" ")[-1].split("-")[0]
+                    if reference.split(" ")[0].isdigit():
+                        book = ' '.join(reference.split(" "))
+                    else: book = reference.split(" ")[0]
                     final_url = generate_url(book,first_chapter)
-                    send_mail(to_email=[credentials.to_email,credentials.to_email_alt],
-                              subject=f"Today's ({day_of_week_human_readable}) reading is {value}",
-                              content=f'<span>Bible Reading Plan for {day_of_week_human_readable} - {today_human_readable} </span><br/><span>Click here to open plan {final_url}</span>')
-                    return final_url
+                    return final_url,reference
 
+def generate_email_content():
+    """Send email with last 5 days of readings also"""
+    my_date = datetime.today()
+    current_week = my_date.isocalendar().week
+    current_day = int(my_date.strftime('%w')) #sunday is 0
+    final_url = parse_bible_data(current_week,current_day)[0]
+    day_of_week_human_readable = calendar.day_name[my_date.weekday()]  #'Wednesday'
+    today_human_readable = my_date.strftime('%Y-%m-%d')
+    content = f"""
+            <span>Bible Reading Plan for {day_of_week_human_readable} - {today_human_readable} 
+            </span>
+            <br/>
+            <span>Click here to open plan {final_url}</span>
+            """
+    x = 1
+    for i in range(5):
+        my_date = datetime.today() - timedelta(days=x)
+        current_week = my_date.isocalendar().week
+        current_day = int(my_date.strftime('%w')) #sunday is 0
+        print(f"current_week: {current_week} and current_day: {current_day} ")
+        final_url = parse_bible_data(current_week,current_day)[0]
+        day_of_week_human_readable = calendar.day_name[my_date.weekday()]  #'Wednesday'
+        today_human_readable = my_date.strftime('%Y-%m-%d')
+        content += f"""
+                <br/>
+                <span>Previous Reading for 
+                <span>Bible Reading Plan for {day_of_week_human_readable} - {today_human_readable} 
+                </span>
+                <br/>
+                <span>Click here to open plan {final_url}</span>
+                """
+        x -= 1
+    print(f"content: {content}")
+    return content
+    
 
 def generate_url(book,first_chapter):
     base_url = 'https://www.bible.com/bible/116/'
@@ -77,10 +107,17 @@ def web_response(url):
         sys.exit(1)
 
 if __name__ == '__main__':
+    my_date = datetime.today()
     current_week = my_date.isocalendar().week
     current_day = int(my_date.strftime('%w')) #sunday is 0
+    final_url = parse_bible_data(current_week,current_day)[0]
+    day_of_week_human_readable = calendar.day_name[my_date.weekday()]  #'Wednesday'
+    today_human_readable = my_date.strftime('%Y-%m-%d')
     print(f"current_week: {current_week} and current_day: {current_day} ")
-    final_url = parse_bible_data(current_week,current_day)
-
+    to = credentials.to_email
+    to = [credentials.to_email,credentials.to_email_alt]
+    send_mail(to_email=credentials.to_email,
+                              subject=f"Today's ({day_of_week_human_readable}) reading is {parse_bible_data(current_week,current_day)[1]}",
+                              content=generate_email_content())
 
 
