@@ -44,23 +44,21 @@ def generate_email_content():
             <span>Click here to open plan {final_url}</span>
             """
     x = 1
-    for i in range(5):
+    for i in range(7):
         my_date = datetime.today() - timedelta(days=x)
+        print(f"my_date: {my_date}")
         current_week = my_date.isocalendar().week
         current_day = int(my_date.strftime('%w')) #sunday is 0
         print(f"current_week: {current_week} and current_day: {current_day} ")
-        final_url = parse_bible_data(current_week,current_day)[0]
+        final_url,reference = parse_bible_data(current_week,current_day)
         day_of_week_human_readable = calendar.day_name[my_date.weekday()]  #'Wednesday'
         today_human_readable = my_date.strftime('%Y-%m-%d')
         content += f"""
-                <br/>
-                <span>Previous Reading for 
-                <span>Bible Reading Plan for {day_of_week_human_readable} - {today_human_readable} 
-                </span>
-                <br/>
+                <hr/>
+                <span>Previous Reading for {day_of_week_human_readable} - {today_human_readable}:  {reference}
                 <span>Click here to open plan {final_url}</span>
                 """
-        x -= 1
+        x += 1
     print(f"content: {content}")
     return content
     
